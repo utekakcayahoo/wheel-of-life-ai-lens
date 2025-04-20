@@ -9,6 +9,7 @@ import { UserProvider } from "@/context/UserContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { checkDatabaseSetup } from "@/utils/supabase/databaseCheck";
+import { initializeDefaultUsers } from "@/utils/supabase";
 import "./App.css";
 
 const queryClient = new QueryClient({
@@ -23,7 +24,15 @@ const queryClient = new QueryClient({
 const AppContent = () => {
   useEffect(() => {
     // Check if database is set up when the app loads
-    checkDatabaseSetup();
+    const setupApp = async () => {
+      const isDbSetup = await checkDatabaseSetup();
+      if (isDbSetup) {
+        // Only initialize users if database is set up
+        await initializeDefaultUsers();
+      }
+    };
+    
+    setupApp();
   }, []);
 
   return (

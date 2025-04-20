@@ -1,6 +1,7 @@
 
 import { supabase, isSupabaseConfigured } from './client';
 import type { DbUser } from './types';
+import { toast } from 'sonner';
 
 export const fetchUsers = async () => {
   try {
@@ -31,24 +32,57 @@ export const fetchUsers = async () => {
 
 export const initializeDefaultUsers = async () => {
   try {
-    const defaultUsers = [
-      { id: '1', username: 'Joe' },
-      { id: '2', username: 'Mike' },
-      { id: '3', username: 'Emma' }
-    ];
+    if (!isSupabaseConfigured) {
+      console.warn('Supabase not configured, skipping user initialization');
+      return;
+    }
     
-    for (const user of defaultUsers) {
-      const { error } = await supabase
-        .from('users')
-        .upsert(user, { onConflict: 'id' });
+    // First check if users already exist
+    const { data: existingUsers, error: fetchError } = await supabase
+      .from('users')
+      .select('count');
       
-      if (error) {
-        console.error(`Error initializing user ${user.username}:`, error);
+    if (fetchError) {
+      console.error('Error checking existing users:', fetchError);
+      throw fetchError;
+    }
+    
+    // Only add default users if no users exist
+    if (existingUsers && existingUsers.length === 0) {
+      console.log('No users found, initializing default users');
+      const defaultUsers = [
+        { id: '1', username: 'Joe' },
+        { id: '2', username: 'Mike' },
+        { id: '3', username: 'Emma' }
+      ];
+      
+      for (const user of defaultUsers) {
+        const { error } = await supabase
+          .from('users')
+          .upsert(user, { onConflict: 'id' });
+        
+        if (error) {
+          console.error(`Error initializing user ${user.username}:`, error);
+          if (error.code === '42501') {
+            toast.error("Permission denied when creating users. Check your RLS policies.", {
+              description: "Make sure your Supabase RLS policies allow inserting into the users table."
+            });
+          }
+        } else {
+          console.log(`User ${user.username} successfully initialized`);
+        }
       }
+      
+      toast.success("Default users initialized", {
+        description: "Joe, Mike, and Emma are ready to use!"
+      });
+    } else {
+      console.log('Users already exist, skipping initialization');
     }
   } catch (error) {
     console.error('Failed to initialize default users:', error);
-    // Silently fail if Supabase is not properly connected
+    toast.error("Failed to initialize default users", {
+      description: error instanceof Error ? error.message : 'Unknown error occurred'
+    });
   }
 };
-
