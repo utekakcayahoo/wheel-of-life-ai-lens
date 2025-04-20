@@ -1,10 +1,8 @@
-
 import { supabase, isSupabaseConfigured } from '../supabase';
 import { WheelData } from '@/types/userTypes';
 import { toast } from 'sonner';
 import { checkDatabaseSetup } from '../supabase/databaseCheck';
 
-// Update wheel data based on feedback
 export const updateWheelFromFeedback = async (
   baseWheelData: WheelData,
   feedback: {
@@ -19,75 +17,62 @@ export const updateWheelFromFeedback = async (
       throw new Error('Supabase not configured');
     }
     
-    // Check if database is properly set up
     const isDatabaseSetup = await checkDatabaseSetup();
     if (!isDatabaseSetup) {
       throw new Error('Database tables not set up properly');
     }
     
-    console.log('Invoking update-wheel-from-feedback function with data:', {
-      baseWheelData,
-      feedback
-    });
+    console.log('Attempting to update wheel from feedback');
     
-    // Set a client-side timeout
     const timeoutPromise = new Promise<{error: {message: string}}>((_, reject) => {
       setTimeout(() => {
         reject({ error: { message: 'Function call timed out after 8 seconds' } });
       }, 8000);
     });
 
-    // Call the Supabase function
     const functionPromise = supabase.functions.invoke('update-wheel-from-feedback', {
-      body: {
-        baseWheelData,
-        feedback
-      }
+      body: { baseWheelData, feedback }
     });
 
-    // Race between the function call and the timeout
     const response = await Promise.race([functionPromise, timeoutPromise]);
     
-    if ('error' in response && response.error) {
-      console.error('Error calling update wheel function:', response.error);
+    if ('error' in response) {
+      console.error('Wheel update function error:', response.error);
+      toast.warning('Wheel update service encountered an issue.', {
+        description: response.error?.message || 'Unable to update wheel automatically'
+      });
       throw response.error;
     }
     
-    // Type guard to ensure data exists and is properly typed
-    if (!('data' in response) || !response.data) {
-      console.error('No data returned from update wheel function');
-      throw new Error('No data returned from function');
+    if (!('data' in response) || !response.data?.updatedWheelData) {
+      console.warn('No valid wheel data returned from update function');
+      throw new Error('Invalid wheel data update response');
     }
     
-    console.log('Updated wheel data:', response.data.updatedWheelData);
     return response.data.updatedWheelData;
   } catch (error) {
-    console.warn('Error calling update wheel function via Supabase, using simple fallback:', error);
+    console.warn('Fallback wheel update triggered:', error);
+    
     toast.warning('Wheel update service unavailable. Using simple update logic.', {
-      description: 'Please run the database migrations to enable full functionality.'
+      description: error instanceof Error ? error.message : 'Unknown error occurred'
     });
     
-    // Simple fallback - adjust categories mentioned in feedback slightly
     const updatedData = { ...baseWheelData };
     feedback.categories.forEach(category => {
       if (updatedData[category] !== undefined) {
-        // Simple logic: Analyze sentiment in a very basic way
         const text = feedback.text.toLowerCase();
         const positiveWords = ['good', 'great', 'excellent', 'amazing', 'wonderful', 'positive', 'better', 'improve'];
         const negativeWords = ['bad', 'poor', 'terrible', 'awful', 'negative', 'worse', 'decline', 'struggle'];
         
-        let adjustment = 0.5; // Default small positive adjustment
+        let adjustment = 0.5;
         
-        // Check for positive words
         if (positiveWords.some(word => text.includes(word))) {
           adjustment = 0.8;
         }
-        // Check for negative words
         if (negativeWords.some(word => text.includes(word))) {
           adjustment = -0.5;
         }
         
-        // Apply the adjustment
         updatedData[category] = Math.max(1, Math.min(10, updatedData[category] + adjustment));
       }
     });
