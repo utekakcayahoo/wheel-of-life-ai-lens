@@ -166,20 +166,29 @@ export const updateWheelFromFeedback = async (
       feedback
     });
     
-    const { data, error } = await supabase.functions.invoke('update-wheel-from-feedback', {
+    const response = await supabase.functions.invoke('update-wheel-from-feedback', {
       body: {
         baseWheelData,
         feedback
+      },
+      // Add timeout to prevent indefinite waiting
+      options: {
+        timeout: 8000 // 8 seconds timeout
       }
     });
     
-    if (error) {
-      console.error('Error calling update wheel function:', error);
-      throw error;
+    if (response.error) {
+      console.error('Error calling update wheel function:', response.error);
+      throw response.error;
     }
     
-    console.log('Updated wheel data:', data.updatedWheelData);
-    return data.updatedWheelData;
+    if (!response.data) {
+      console.error('No data returned from update wheel function');
+      throw new Error('No data returned from function');
+    }
+    
+    console.log('Updated wheel data:', response.data.updatedWheelData);
+    return response.data.updatedWheelData;
   } catch (error) {
     console.warn('Error calling update wheel function via Supabase, using simple fallback:', error);
     toast.warning('Wheel update service unavailable. Using simple update logic.');
