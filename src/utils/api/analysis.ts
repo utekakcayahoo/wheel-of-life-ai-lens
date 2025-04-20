@@ -22,8 +22,8 @@ export const generateWheelAnalysis = async (
     // Add a timeout to prevent the function from hanging indefinitely
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => {
-        reject(new Error('Analysis function timed out after 10 seconds'));
-      }, 10000);
+        reject(new Error('Analysis function timed out after 15 seconds'));
+      }, 15000);
     });
 
     const functionPromise = supabase.functions.invoke('generate-wheel-analysis', {

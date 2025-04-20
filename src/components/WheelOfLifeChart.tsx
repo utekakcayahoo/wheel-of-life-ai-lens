@@ -26,19 +26,22 @@ const WheelOfLifeChart = ({ wheelData, username, date }: WheelOfLifeChartProps) 
   const [chartData, setChartData] = useState<any[]>([]);
   const [analysis, setAnalysis] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (wheelData) {
       setChartData(wheelDataToChartFormat(wheelData));
       
       setLoading(true);
+      setError(null);
+
       generateWheelAnalysis(wheelData, username)
         .then((result) => {
           setAnalysis(result);
         })
         .catch((error) => {
           console.error("Error generating analysis:", error);
-          setAnalysis("Unable to generate analysis. Please try again later.");
+          setError("Unable to generate analysis. Please try again later.");
           toast.error("Failed to generate wheel analysis", {
             description: error instanceof Error ? error.message : "Unknown error"
           });
@@ -118,7 +121,11 @@ const WheelOfLifeChart = ({ wheelData, username, date }: WheelOfLifeChartProps) 
             </>
           ) : (
             <div className="space-y-2 text-sm">
-              {analysis ? (
+              {error ? (
+                <p className="text-muted-foreground">
+                  {error}
+                </p>
+              ) : analysis ? (
                 <p className="whitespace-pre-line">{analysis}</p>
               ) : (
                 <p className="text-muted-foreground">

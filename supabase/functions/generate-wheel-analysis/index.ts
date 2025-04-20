@@ -44,6 +44,11 @@ serve(async (req) => {
     
     const apiKey = secretData.value;
     
+    if (!apiKey) {
+      console.error("OpenAI API key is empty");
+      throw new Error("OpenAI API key is empty");
+    }
+    
     console.log("Calling OpenAI API for wheel analysis");
     
     // Call OpenAI API for analysis
@@ -100,7 +105,7 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error("Error in generate-wheel-analysis:", error);
+    console.error("Error in generate-wheel-analysis:", error.message || error);
     return new Response(
       JSON.stringify({
         error: error.message || "Unknown error occurred",
