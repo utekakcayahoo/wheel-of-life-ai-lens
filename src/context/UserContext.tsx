@@ -12,6 +12,7 @@ interface UserContextType {
   users: User[];
   currentUser: User | null;
   selectedDate: Date;
+  usingMockData: boolean;
   login: (userId: string) => Promise<void>;
   logout: () => void;
   setSelectedDate: (date: Date) => void;
@@ -27,6 +28,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUsers,
     currentUser,
     isLoading,
+    usingMockData,
     login,
     logout,
     refreshUserData
@@ -80,6 +82,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         users,
         currentUser,
         selectedDate,
+        usingMockData,
         login,
         logout,
         setSelectedDate,

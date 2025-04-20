@@ -17,6 +17,7 @@ export const useUserState = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [usingMockData, setUsingMockData] = useState<boolean>(false);
   const [wheelChannel, setWheelChannel] = useState<any>(null);
   const [feedbackChannel, setFeedbackChannel] = useState<any>(null);
 
@@ -57,39 +58,61 @@ export const useUserState = () => {
   const initializeUsers = async () => {
     try {
       setIsLoading(true);
-      await initializeDefaultUsers();
-      const usersData = await fetchUsers();
       
-      const formattedUsers = await Promise.all(
-        usersData.map(async (user) => {
-          try {
-            const wheelHistory = await fetchUserWheelHistory(user.id);
-            const { feedbackReceived, feedbackGiven } = await fetchUserFeedback(user.id);
-            
-            return {
-              id: user.id,
-              username: user.username,
-              wheelHistory,
-              feedbackReceived,
-              feedbackGiven
-            };
-          } catch (error) {
-            console.error(`Error fetching data for user ${user.username}:`, error);
-            return {
-              id: user.id,
-              username: user.username,
-              wheelHistory: {},
-              feedbackReceived: [],
-              feedbackGiven: []
-            };
-          }
-        })
-      );
+      try {
+        // Try to initialize default users first
+        await initializeDefaultUsers();
+      } catch (error) {
+        console.error("Error initializing users:", error);
+      }
       
-      setUsers(formattedUsers);
+      try {
+        const usersData = await fetchUsers();
+        
+        // Check if we're using mock data by looking at the source of users
+        const isMockData = usersData.length === 3 && 
+                        usersData[0].username === 'Joe' && 
+                        usersData[1].username === 'Mike' && 
+                        usersData[2].username === 'Emma';
+        
+        setUsingMockData(isMockData);
+        
+        const formattedUsers = await Promise.all(
+          usersData.map(async (user) => {
+            try {
+              const wheelHistory = await fetchUserWheelHistory(user.id);
+              const { feedbackReceived, feedbackGiven } = await fetchUserFeedback(user.id);
+              
+              return {
+                id: user.id,
+                username: user.username,
+                wheelHistory,
+                feedbackReceived,
+                feedbackGiven
+              };
+            } catch (error) {
+              console.error(`Error fetching data for user ${user.username}:`, error);
+              return {
+                id: user.id,
+                username: user.username,
+                wheelHistory: {},
+                feedbackReceived: [],
+                feedbackGiven: []
+              };
+            }
+          })
+        );
+        
+        setUsers(formattedUsers);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+        setUsingMockData(true);
+        toast.error("Error loading user data. Using mock data instead.");
+      }
     } catch (error) {
       console.error("Error initializing users:", error);
-      toast.error("Error loading user data. Please try again later.");
+      setUsingMockData(true);
+      toast.error("Error loading user data. Using mock data instead.");
     } finally {
       setIsLoading(false);
     }
@@ -154,6 +177,7 @@ export const useUserState = () => {
     setUsers,
     currentUser,
     isLoading,
+    usingMockData,
     login,
     logout,
     refreshUserData

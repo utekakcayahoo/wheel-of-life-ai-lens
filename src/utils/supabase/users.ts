@@ -17,8 +17,8 @@ export const fetchUsers = async () => {
     if (error) {
       console.error('Error fetching users:', error);
       if (error.code === '42501') {
-        toast.error("Permission denied when fetching users. Check your RLS policies.", {
-          description: "Make sure your Supabase RLS policies allow selecting from the users table."
+        toast.error("Permission denied when fetching users.", {
+          description: "Please apply the migration script in supabase/migrations folder to update RLS policies."
         });
       }
       throw error;
@@ -28,8 +28,19 @@ export const fetchUsers = async () => {
       console.log('Found users in database:', data.length);
       return data as DbUser[];
     } else {
-      console.warn('No users found in database, using mock data');
-      return getMockUsers();
+      console.log('No users found in database. Initializing default users...');
+      await initializeDefaultUsers();
+      // Try fetching again after initialization
+      const { data: refreshedData, error: refreshError } = await supabase
+        .from('users')
+        .select('*');
+        
+      if (refreshError || !refreshedData || refreshedData.length === 0) {
+        console.warn('Still no users found after initialization, using mock data');
+        return getMockUsers();
+      }
+      
+      return refreshedData as DbUser[];
     }
   } catch (error) {
     console.warn('Failed to fetch users from Supabase. Using mock data:', error);
@@ -62,10 +73,14 @@ export const initializeDefaultUsers = async () => {
       .select('*');
       
     if (fetchError) {
-      console.error('Error checking existing users:', fetchError);
-      if (fetchError.code === '42501') {
-        toast.error("Permission denied when checking users. Check your RLS policies.", {
-          description: "Make sure your Supabase RLS policies allow selecting from the users table."
+      if (fetchError.code === '42501') { // Permission denied error
+        toast.error("Permission denied when checking users.", {
+          description: "Please apply the migration script in supabase/migrations folder to update RLS policies."
+        });
+      } else {
+        console.error('Error checking existing users:', fetchError);
+        toast.error("Error checking existing users", {
+          description: "Could not verify if users exist in the database."
         });
       }
       throw fetchError;
@@ -87,8 +102,8 @@ export const initializeDefaultUsers = async () => {
           console.error(`Error initializing user ${user.username}:`, error);
           hasInsertError = true;
           if (error.code === '42501') {
-            toast.error("Permission denied when creating users. Check your RLS policies.", {
-              description: "Make sure your Supabase RLS policies allow inserting into the users table."
+            toast.error("Permission denied when creating users.", {
+              description: "Please apply the migration script in supabase/migrations folder to update RLS policies."
             });
           }
         } else {
@@ -100,18 +115,15 @@ export const initializeDefaultUsers = async () => {
         toast.success("Default users initialized", {
           description: "Joe, Mike, and Emma are ready to use!"
         });
-      } else {
-        toast.warning("Using mock user data", {
-          description: "RLS policies prevented database creation but app will function with temporary users."
-        });
       }
     } else {
       console.log('Users already exist, skipping initialization');
     }
   } catch (error) {
     console.error('Failed to initialize default users:', error);
-    toast.warning("Unable to initialize users in database", {
-      description: "Using mock data instead. App will function but changes won't be saved."
+    toast.error("Unable to initialize users in database", {
+      description: "Please make sure your Supabase instance is properly configured."
     });
+    throw error;
   }
 };

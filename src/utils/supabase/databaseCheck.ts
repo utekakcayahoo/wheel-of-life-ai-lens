@@ -1,10 +1,11 @@
+
 import { supabase } from './client';
 import { toast } from 'sonner';
 
 export const checkDatabaseSetup = async (): Promise<boolean> => {
   try {
     // Try to query the users table
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('users')
       .select('count')
       .limit(1)
@@ -21,16 +22,15 @@ export const checkDatabaseSetup = async (): Promise<boolean> => {
       }
       
       if (error.code === '42501') { // Permission denied error code
-        toast.warning(
+        toast.error(
           "RLS policy issue detected",
           { 
-            description: "Your Supabase Row Level Security policies are preventing access to the users table. App will use mock data instead.",
+            description: "Your Supabase Row Level Security policies need to be updated. Please apply the migration script in supabase/migrations folder.",
             duration: 8000
           }
         );
-        console.error("RLS policy issue detected. Check your Supabase policies for the users table.");
-        // Return true so the app keeps functioning with mock data
-        return true;
+        console.error("RLS policy issue detected. Check the migration script in supabase/migrations folder.");
+        return false; // Return false so the app knows there's an issue with RLS
       }
       
       console.error("Error checking database:", error);
