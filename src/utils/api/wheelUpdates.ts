@@ -1,3 +1,4 @@
+
 import { supabase, isSupabaseConfigured } from '../supabase';
 import { WheelData } from '@/types/userTypes';
 import { toast } from 'sonner';
@@ -44,12 +45,15 @@ export const updateWheelFromFeedback = async (
       throw response.error;
     }
     
-    if (!('data' in response) || !response.data?.updatedWheelData) {
+    // Fix the type issue by using type assertion to tell TypeScript what the response structure is
+    const typedResponse = response as { data?: { updatedWheelData: WheelData } };
+    
+    if (!typedResponse.data?.updatedWheelData) {
       console.warn('No valid wheel data returned from update function');
       throw new Error('Invalid wheel data update response');
     }
     
-    return response.data.updatedWheelData;
+    return typedResponse.data.updatedWheelData;
   } catch (error) {
     console.warn('Fallback wheel update triggered:', error);
     
