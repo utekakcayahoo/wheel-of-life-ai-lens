@@ -13,8 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { WheelData } from "@/context/UserContext";
 import { wheelDataToChartFormat, formatCategoryClass, getCategoryColor } from "@/utils/wheelOfLifeUtils";
-import { generateWheelAnalysis } from "@/utils/api";
-import { useUserContext } from "@/context/UserContext";
+import { generateWheelAnalysis } from "@/utils/apiUtils";
 
 interface WheelOfLifeChartProps {
   wheelData: WheelData | null;
@@ -23,7 +22,6 @@ interface WheelOfLifeChartProps {
 }
 
 const WheelOfLifeChart = ({ wheelData, username, date }: WheelOfLifeChartProps) => {
-  const { apiKey } = useUserContext();
   const [chartData, setChartData] = useState<any[]>([]);
   const [analysis, setAnalysis] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
@@ -32,27 +30,23 @@ const WheelOfLifeChart = ({ wheelData, username, date }: WheelOfLifeChartProps) 
     if (wheelData) {
       setChartData(wheelDataToChartFormat(wheelData));
       
-      if (apiKey) {
-        setLoading(true);
-        generateWheelAnalysis(wheelData, username, apiKey)
-          .then((result) => {
-            setAnalysis(result);
-          })
-          .catch((error) => {
-            console.error("Error generating analysis:", error);
-            setAnalysis("Unable to generate analysis. Please check your API key and try again.");
-          })
-          .finally(() => {
-            setLoading(false);
-          });
-      } else {
-        setAnalysis("Enter an OpenAI API key to generate analysis");
-      }
+      setLoading(true);
+      generateWheelAnalysis(wheelData, username)
+        .then((result) => {
+          setAnalysis(result);
+        })
+        .catch((error) => {
+          console.error("Error generating analysis:", error);
+          setAnalysis("Unable to generate analysis. Please try again later.");
+        })
+        .finally(() => {
+          setLoading(false);
+        });
     } else {
       setChartData([]);
       setAnalysis("No data available for this date");
     }
-  }, [wheelData, username, apiKey]);
+  }, [wheelData, username]);
 
   const formatDate = (date: Date): string => {
     return date.toLocaleDateString("en-US", {
@@ -124,7 +118,7 @@ const WheelOfLifeChart = ({ wheelData, username, date }: WheelOfLifeChartProps) 
                 <p className="whitespace-pre-line">{analysis}</p>
               ) : (
                 <p className="text-muted-foreground">
-                  Analysis not available. Please check your API key.
+                  Analysis not available. Please try again later.
                 </p>
               )}
             </div>

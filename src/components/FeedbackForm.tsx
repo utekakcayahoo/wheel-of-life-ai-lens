@@ -20,22 +20,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { User, useUserContext } from "@/context/UserContext";
-import { translateToEnglish } from "@/utils/api";
-import { useToast } from "@/hooks/use-toast";
+import { translateToEnglish } from "@/utils/apiUtils";
+import { toast } from "sonner";
 
 const FeedbackForm = () => {
-  const { users, currentUser, addFeedback, apiKey } = useUserContext();
-  const { toast } = useToast();
+  const { users, currentUser, addFeedback, isLoading } = useUserContext();
   const [recipientId, setRecipientId] = useState<string>("");
   const [feedback, setFeedback] = useState<string>("");
   const [feedbackDate, setFeedbackDate] = useState<Date | undefined>(new Date());
@@ -43,47 +41,22 @@ const FeedbackForm = () => {
 
   const handleSubmit = async () => {
     if (!currentUser) {
-      toast({
-        title: "Error",
-        description: "You must be logged in to submit feedback",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (!apiKey) {
-      toast({
-        title: "Error",
-        description: "OpenAI API key is required",
-        variant: "destructive",
-      });
+      toast.error("You must be logged in to submit feedback");
       return;
     }
 
     if (!recipientId) {
-      toast({
-        title: "Error",
-        description: "Please select a recipient",
-        variant: "destructive",
-      });
+      toast.error("Please select a recipient");
       return;
     }
 
     if (!feedback.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter feedback",
-        variant: "destructive",
-      });
+      toast.error("Please enter feedback");
       return;
     }
 
     if (!feedbackDate) {
-      toast({
-        title: "Error",
-        description: "Please select a date",
-        variant: "destructive",
-      });
+      toast.error("Please select a date");
       return;
     }
 
@@ -97,7 +70,7 @@ const FeedbackForm = () => {
       const englishPattern = /^[a-zA-Z0-9\s.,!?'";:\-()]*$/;
       if (!englishPattern.test(feedback)) {
         try {
-          processedFeedback = await translateToEnglish(feedback, apiKey);
+          processedFeedback = await translateToEnglish(feedback);
         } catch (error) {
           console.error("Error translating feedback:", error);
           // Continue with original feedback if translation fails
@@ -116,17 +89,10 @@ const FeedbackForm = () => {
       setRecipientId("");
       setFeedback("");
 
-      toast({
-        title: "Success",
-        description: "Feedback submitted successfully",
-      });
+      toast.success("Feedback submitted successfully");
     } catch (error) {
       console.error("Error submitting feedback:", error);
-      toast({
-        title: "Error",
-        description: "Failed to submit feedback. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Failed to submit feedback. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -136,11 +102,6 @@ const FeedbackForm = () => {
   const recipients = users.filter(
     (user) => !currentUser || user.id !== currentUser.id
   );
-
-  const getRecipientName = (id: string) => {
-    const recipient = users.find((user) => user.id === id);
-    return recipient ? recipient.username : "";
-  };
 
   return (
     <Card>
@@ -158,7 +119,7 @@ const FeedbackForm = () => {
           <Select
             value={recipientId}
             onValueChange={setRecipientId}
-            disabled={!currentUser || submitting}
+            disabled={!currentUser || submitting || isLoading}
           >
             <SelectTrigger id="recipient">
               <SelectValue placeholder="Select a recipient" />
@@ -189,7 +150,7 @@ const FeedbackForm = () => {
                   "w-full justify-start text-left font-normal",
                   !feedbackDate && "text-muted-foreground"
                 )}
-                disabled={!currentUser || submitting}
+                disabled={!currentUser || submitting || isLoading}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {feedbackDate ? (
@@ -221,7 +182,7 @@ const FeedbackForm = () => {
             onChange={(e) => setFeedback(e.target.value)}
             placeholder="Enter your feedback here. You can mention multiple Wheel of Life categories in a single feedback (e.g. Career, Health, etc.)."
             className="min-h-[120px]"
-            disabled={!currentUser || submitting}
+            disabled={!currentUser || submitting || isLoading}
           />
           <p className="text-xs text-muted-foreground">
             You can write in any language. The system will automatically translate to English if needed.
@@ -233,7 +194,7 @@ const FeedbackForm = () => {
           onClick={handleSubmit}
           className="w-full"
           disabled={
-            !currentUser || !recipientId || !feedback.trim() || !feedbackDate || submitting || !apiKey
+            !currentUser || !recipientId || !feedback.trim() || !feedbackDate || submitting || isLoading
           }
         >
           {submitting ? "Submitting..." : "Submit Feedback"}
