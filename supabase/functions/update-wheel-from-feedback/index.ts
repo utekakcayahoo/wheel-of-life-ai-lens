@@ -1,7 +1,10 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders, handleCors } from "./utils/cors.ts";
-import { createSupabaseClient, getOpenAIKey, getFeedbackProvider } from "./utils/supabase.ts";
-import { updateWheelWithOpenAI, processOpenAIResponse } from "./utils/openai.ts";
+import { createSupabaseClient } from "./utils/supabase.ts";
+import { processFeedbackUpdate } from "./utils/feedback.ts";
+import { getWheelCategories } from "./utils/wheel.ts";
+import type { WheelData } from "./utils/types.ts";
 
 serve(async (req) => {
   const corsResponse = handleCors(req);
@@ -19,33 +22,15 @@ serve(async (req) => {
     });
     
     const supabaseClient = createSupabaseClient();
+    const wheelCategories = await getWheelCategories(supabaseClient);
+    console.log("Retrieved wheel categories:", wheelCategories);
     
-    // Get wheel categories
-    const { data: categoryData, error: categoryError } = await supabaseClient
-      .from("wheel_categories")
-      .select("name");
-      
-    if (categoryError) {
-      throw new Error("Could not retrieve wheel categories: " + categoryError.message);
-    }
-    
-    const wheelCategories = categoryData?.map(cat => cat.name) || [];
-    console.log("Retrieved wheel categories:", categoryData);
-    
-    // If no categories were classified, return the base wheel data unchanged
-    if (!feedback.categories || feedback.categories.length === 0) {
-      return new Response(
-        JSON.stringify({ updatedWheelData: baseWheelData }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
-      );
-    }
-    
-    const apiKey = await getOpenAIKey(supabaseClient);
-    const fromUser = await getFeedbackProvider(supabaseClient, feedback.from);
-    
-    console.log("Calling OpenAI API to update wheel data");
-    const openAIData = await updateWheelWithOpenAI(apiKey, wheelCategories, baseWheelData, feedback, fromUser);
-    const updatedWheelData = processOpenAIResponse(openAIData, wheelCategories, baseWheelData);
+    const updatedWheelData = await processFeedbackUpdate(
+      supabaseClient,
+      baseWheelData,
+      feedback,
+      wheelCategories
+    );
     
     return new Response(
       JSON.stringify({ updatedWheelData }),
