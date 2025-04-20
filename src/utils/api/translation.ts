@@ -13,10 +13,20 @@ export const translateToEnglish = async (text: string): Promise<string> => {
     
     console.log('Invoking translate-text function with text:', text.substring(0, 50) + (text.length > 50 ? '...' : ''));
     
+    // Add a timeout to prevent the function from hanging indefinitely
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('Translation function timed out after 8 seconds'));
+      }, 8000);
+    });
+
     // Try using Supabase Edge Function
-    const { data, error } = await supabase.functions.invoke('translate-text', {
+    const functionPromise = supabase.functions.invoke('translate-text', {
       body: { text }
     });
+    
+    // Race between the function call and the timeout
+    const { data, error } = await Promise.race([functionPromise, timeoutPromise]);
     
     if (error) {
       console.error('Error calling translate function:', error);

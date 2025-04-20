@@ -19,9 +19,19 @@ export const generateWheelAnalysis = async (
       username 
     });
     
-    const { data, error } = await supabase.functions.invoke('generate-wheel-analysis', {
+    // Add a timeout to prevent the function from hanging indefinitely
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('Analysis function timed out after 10 seconds'));
+      }, 10000);
+    });
+
+    const functionPromise = supabase.functions.invoke('generate-wheel-analysis', {
       body: { wheelData, username }
     });
+    
+    // Race between the function call and the timeout
+    const { data, error } = await Promise.race([functionPromise, timeoutPromise]);
     
     if (error) {
       console.error('Error calling analysis function:', error);

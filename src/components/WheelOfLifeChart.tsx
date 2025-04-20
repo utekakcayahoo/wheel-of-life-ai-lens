@@ -39,7 +39,9 @@ const WheelOfLifeChart = ({ wheelData, username, date }: WheelOfLifeChartProps) 
         .catch((error) => {
           console.error("Error generating analysis:", error);
           setAnalysis("Unable to generate analysis. Please try again later.");
-          toast.error("Failed to generate wheel analysis");
+          toast.error("Failed to generate wheel analysis", {
+            description: error instanceof Error ? error.message : "Unknown error"
+          });
         })
         .finally(() => {
           setLoading(false);
