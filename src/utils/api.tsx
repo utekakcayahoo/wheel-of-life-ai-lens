@@ -1,5 +1,4 @@
-
-import { WheelData } from "@/context/UserContext";
+import { WheelData } from "@/types/userTypes";
 
 // Translate text to English using OpenAI
 export const translateToEnglish = async (

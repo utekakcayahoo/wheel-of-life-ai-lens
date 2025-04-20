@@ -1,6 +1,5 @@
-
 import { supabase } from './client';
-import type { Feedback } from '@/context/UserContext';
+import type { Feedback } from '@/types/userTypes';
 
 export const fetchUserFeedback = async (userId: string) => {
   try {
@@ -75,4 +74,3 @@ export const saveFeedback = async (feedback: Omit<Feedback, "id" | "categories">
     // Silently fail if Supabase is not properly connected
   }
 };
-

@@ -1,6 +1,6 @@
 
 import { supabase, isSupabaseConfigured } from '../supabase';
-import { WheelData } from '@/context/UserContext';
+import { WheelData } from '@/types/userTypes';
 import { toast } from 'sonner';
 
 // Generate wheel of life analysis based on user data
@@ -32,7 +32,7 @@ export const generateWheelAnalysis = async (
     
     // Find highest and lowest categories
     const entries = Object.entries(wheelData);
-    const sorted = [...entries].sort((a, b) => b[1] - a[1]);
+    const sorted = [...entries].sort((a, b) => Number(b[1]) - Number(a[1]));
     const highest = sorted[0];
     const lowest = sorted[sorted.length - 1];
     
@@ -48,7 +48,7 @@ Overall, your wheel shows a ${getBalanceAssessment(wheelData)} balance across li
 
 // Helper function to assess wheel balance
 function getBalanceAssessment(wheelData: WheelData): string {
-  const values = Object.values(wheelData);
+  const values = Object.values(wheelData).map(val => Number(val));
   const max = Math.max(...values);
   const min = Math.min(...values);
   const difference = max - min;

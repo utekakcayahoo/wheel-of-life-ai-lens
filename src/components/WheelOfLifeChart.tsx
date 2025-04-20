@@ -11,7 +11,7 @@ import {
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { WheelData } from "@/context/UserContext";
+import { WheelData } from "@/types/userTypes";
 import { wheelDataToChartFormat, formatCategoryClass, getCategoryColor } from "@/utils/wheelOfLifeUtils";
 import { generateWheelAnalysis } from "@/utils/apiUtils";
 

@@ -1,7 +1,6 @@
-
 import { supabase, isSupabaseConfigured } from './client';
 import type { DbWheelData } from './types';
-import type { WheelData, WheelHistory } from '@/context/UserContext';
+import type { WheelData, WheelHistory } from '@/types/userTypes';
 
 export const fetchUserWheelHistory = async (userId: string) => {
   try {
@@ -51,4 +50,3 @@ export const saveWheelData = async (userId: string, date: string, wheelData: Whe
     // Silently fail if Supabase is not properly connected
   }
 };
-

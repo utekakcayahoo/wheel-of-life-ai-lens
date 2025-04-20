@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { WheelData, WheelHistory, wheelCategories } from "@/context/UserContext";
+import { WheelData, WheelHistory, wheelCategories } from "@/types/userTypes";
 import { getCategoryColor, getWheelDataForPastDays } from "@/utils/wheelOfLifeUtils";
 
 interface ProgressChartProps {

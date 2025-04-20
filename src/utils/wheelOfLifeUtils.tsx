@@ -1,5 +1,5 @@
 
-import { WheelData, WheelHistory } from "@/context/UserContext";
+import { WheelData, WheelHistory, wheelCategories } from "@/types/userTypes";
 import { format, subDays, eachDayOfInterval } from "date-fns";
 
 // Get the wheel data for a specific date
@@ -89,9 +89,18 @@ export const getCategoryColor = (category: string): string => {
 export const calculateAverageWheelScore = (wheelData: WheelData | null): number => {
   if (!wheelData) return 0;
   
-  const values = Object.values(wheelData);
+  const values = Object.values(wheelData).map(val => Number(val));
   if (values.length === 0) return 0;
   
   const sum = values.reduce((acc, val) => acc + val, 0);
   return sum / values.length;
+};
+
+// Create an empty wheel data object with default values
+export const getEmptyWheelData = (): WheelData => {
+  const emptyData: WheelData = {};
+  wheelCategories.forEach(category => {
+    emptyData[category] = 5;
+  });
+  return emptyData;
 };

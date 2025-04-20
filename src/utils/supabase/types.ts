@@ -1,5 +1,4 @@
-
-import type { WheelData } from '@/context/UserContext';
+import type { WheelData } from '@/types/userTypes';
 
 export type DbUser = {
   id: string;
@@ -24,4 +23,3 @@ export type DbFeedback = {
   categories: string[];
   created_at?: string;
 };
-

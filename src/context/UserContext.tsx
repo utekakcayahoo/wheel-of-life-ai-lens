@@ -1,9 +1,12 @@
 
 import React, { createContext, useContext, useState } from "react";
-import { User } from "@/types/userTypes";
+import { User, Feedback, WheelData } from "@/types/userTypes";
 import { useUserState } from "@/hooks/useUserState";
 import { saveFeedback } from "@/utils/supabase";
 import { classifyFeedback, updateWheelFromFeedback } from "@/utils/apiUtils";
+import { toast } from "sonner";
+import { saveWheelData } from "@/utils/supabase";
+import { getEmptyWheelData } from "@/utils/wheelOfLifeUtils";
 
 interface UserContextType {
   users: User[];

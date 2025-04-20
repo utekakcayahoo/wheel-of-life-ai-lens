@@ -1,6 +1,6 @@
 
 import { supabase, isSupabaseConfigured } from '../supabase';
-import { WheelData } from '@/context/UserContext';
+import { WheelData } from '@/types/userTypes';
 import { toast } from 'sonner';
 
 // Update wheel data based on feedback
