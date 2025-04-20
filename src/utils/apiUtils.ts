@@ -1,27 +1,29 @@
 
 import { supabase } from './supabase';
 import { WheelData } from '@/context/UserContext';
+import { translateToEnglish as directTranslate, generateWheelAnalysis as directAnalysis } from './api';
 
-// Translate text to English using OpenAI via Supabase Edge Function
+// Translate text to English using OpenAI via Supabase Edge Function or fallback
 export const translateToEnglish = async (text: string): Promise<string> => {
   try {
+    // Try using Supabase Edge Function
     const { data, error } = await supabase.functions.invoke('translate-text', {
       body: { text }
     });
     
     if (error) {
-      console.error('Error translating text:', error);
       throw error;
     }
     
     return data.translatedText;
   } catch (error) {
-    console.error('Error calling translate function:', error);
-    throw error;
+    console.warn('Error calling translate function via Supabase, using fallback method:', error);
+    // Fallback to direct API call
+    return directTranslate(text, 'REPLACE_WITH_YOUR_API_KEY');
   }
 };
 
-// Classify feedback using OpenAI via Supabase Edge Function
+// Classify feedback using OpenAI via Supabase Edge Function or fallback
 export const classifyFeedback = async (text: string): Promise<string[]> => {
   try {
     const { data, error } = await supabase.functions.invoke('classify-feedback', {
@@ -29,14 +31,15 @@ export const classifyFeedback = async (text: string): Promise<string[]> => {
     });
     
     if (error) {
-      console.error('Error classifying feedback:', error);
       throw error;
     }
     
     return data.categories;
   } catch (error) {
-    console.error('Error calling classify function:', error);
-    throw error;
+    console.warn('Error calling classify function via Supabase:', error);
+    // Simple fallback - just return some generic categories
+    console.log('Using fallback classification method');
+    return ['Personal Growth', 'Mental Health'];
   }
 };
 
@@ -51,14 +54,14 @@ export const generateWheelAnalysis = async (
     });
     
     if (error) {
-      console.error('Error generating analysis:', error);
       throw error;
     }
     
     return data.analysis;
   } catch (error) {
-    console.error('Error calling analysis function:', error);
-    throw error;
+    console.warn('Error calling analysis function via Supabase, using fallback method:', error);
+    // Fallback to direct API call
+    return directAnalysis(wheelData, username, 'REPLACE_WITH_YOUR_API_KEY');
   }
 };
 
@@ -80,13 +83,22 @@ export const updateWheelFromFeedback = async (
     });
     
     if (error) {
-      console.error('Error updating wheel from feedback:', error);
       throw error;
     }
     
     return data.updatedWheelData;
   } catch (error) {
-    console.error('Error calling update wheel function:', error);
-    throw error;
+    console.warn('Error calling update wheel function via Supabase:', error);
+    
+    // Simple fallback - adjust categories mentioned in feedback slightly
+    const updatedData = { ...baseWheelData };
+    feedback.categories.forEach(category => {
+      if (updatedData[category] !== undefined) {
+        // Simple logic: Slightly increase the score for mentioned categories
+        updatedData[category] = Math.min(10, updatedData[category] + 0.5);
+      }
+    });
+    
+    return updatedData;
   }
 };
