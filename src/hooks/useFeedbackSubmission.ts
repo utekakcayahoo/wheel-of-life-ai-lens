@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { translateToEnglish } from '@/utils/apiUtils';
 import { useUserContext } from '@/context/UserContext';
-import { checkDatabaseSetup } from '@/utils/supabase/databaseCheck';
+import { checkDatabaseSetup } from '@/utils/supabase';
 
 export const useFeedbackSubmission = () => {
   const { currentUser, addFeedback, isLoading } = useUserContext();

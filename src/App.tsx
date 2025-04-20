@@ -8,8 +8,7 @@ import { Suspense, useEffect } from "react";
 import { UserProvider } from "@/context/UserContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import { checkDatabaseSetup } from "@/utils/supabase/databaseCheck";
-import { initializeDefaultUsers } from "@/utils/supabase";
+import { checkDatabaseSetup, initializeDefaultUsers } from "@/utils/supabase";
 import "./App.css";
 
 const queryClient = new QueryClient({
