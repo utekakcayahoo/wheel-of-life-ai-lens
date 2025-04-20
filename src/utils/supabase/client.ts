@@ -1,24 +1,12 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// Create Supabase client with fallback values to prevent crashes
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder-url.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-key';
+export const supabaseUrl = 'https://xnssbbxobfahdmwyqqme.supabase.co';
+export const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhuc3NiYnhvYmZhaGRtd3lxcW1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUwNzcyMjgsImV4cCI6MjA2MDY1MzIyOH0.drCPt6Cn7qDpBn4IOB1RcDI6pRzF6iWH4LDAyS70cpo';
 
-// Check if proper Supabase credentials are available
-export const hasValidSupabaseCredentials = 
-  import.meta.env.VITE_SUPABASE_URL && 
-  import.meta.env.VITE_SUPABASE_URL.includes('supabase.co') &&
-  import.meta.env.VITE_SUPABASE_ANON_KEY && 
-  import.meta.env.VITE_SUPABASE_ANON_KEY.length > 10;
-
-// Create client (will use fallback values if real credentials aren't available)
+// Create Supabase client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Flag to check if we have valid credentials
-export const isSupabaseConfigured = hasValidSupabaseCredentials;
-
-if (!hasValidSupabaseCredentials) {
-  console.warn('Supabase is not properly configured. Using mock data mode. To enable Supabase functionality, please set the VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
-}
+// Flag to check if we have valid credentials (always true now since we have real credentials)
+export const isSupabaseConfigured = true;
 
