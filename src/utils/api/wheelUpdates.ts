@@ -2,6 +2,7 @@
 import { supabase, isSupabaseConfigured } from '../supabase';
 import { WheelData } from '@/types/userTypes';
 import { toast } from 'sonner';
+import { checkDatabaseSetup } from '../supabase/databaseCheck';
 
 // Update wheel data based on feedback
 export const updateWheelFromFeedback = async (
@@ -16,6 +17,12 @@ export const updateWheelFromFeedback = async (
     if (!isSupabaseConfigured) {
       console.log('Supabase not configured, using fallback');
       throw new Error('Supabase not configured');
+    }
+    
+    // Check if database is properly set up
+    const isDatabaseSetup = await checkDatabaseSetup();
+    if (!isDatabaseSetup) {
+      throw new Error('Database tables not set up properly');
     }
     
     console.log('Invoking update-wheel-from-feedback function with data:', {
@@ -56,7 +63,9 @@ export const updateWheelFromFeedback = async (
     return response.data.updatedWheelData;
   } catch (error) {
     console.warn('Error calling update wheel function via Supabase, using simple fallback:', error);
-    toast.warning('Wheel update service unavailable. Using simple update logic.');
+    toast.warning('Wheel update service unavailable. Using simple update logic.', {
+      description: 'Please run the database migrations to enable full functionality.'
+    });
     
     // Simple fallback - adjust categories mentioned in feedback slightly
     const updatedData = { ...baseWheelData };

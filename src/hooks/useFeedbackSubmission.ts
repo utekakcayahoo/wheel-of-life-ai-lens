@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { translateToEnglish } from '@/utils/apiUtils';
 import { useUserContext } from '@/context/UserContext';
+import { checkDatabaseSetup } from '@/utils/supabase/databaseCheck';
 
 export const useFeedbackSubmission = () => {
   const { currentUser, addFeedback, isLoading } = useUserContext();
@@ -26,6 +27,13 @@ export const useFeedbackSubmission = () => {
     setSubmitting(true);
 
     try {
+      // Check if database is properly set up
+      const isDatabaseSetup = await checkDatabaseSetup();
+      if (!isDatabaseSetup) {
+        toast.error("Database not properly set up. Unable to save feedback.");
+        return false;
+      }
+      
       // Check if translation is needed
       let processedFeedback = feedback;
       const englishPattern = /^[a-zA-Z0-9\s.,!?'";:\-()]*$/;
