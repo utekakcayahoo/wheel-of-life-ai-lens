@@ -1,13 +1,39 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import { UserProvider } from "@/context/UserContext";
+import UserSelector from "@/components/UserSelector";
+import Dashboard from "@/components/Dashboard";
+import { useUserContext } from "@/context/UserContext";
+
+const IndexContent = () => {
+  const { currentUser } = useUserContext();
+
+  return (
+    <div className="container mx-auto py-6 px-4">
+      <header className="mb-8">
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          Wheel of Life AI Lens
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          Track your life balance and receive personalized insights
+        </p>
+      </header>
+
+      <UserSelector />
+
+      {currentUser && (
+        <div className="mt-6">
+          <Dashboard />
+        </div>
+      )}
+    </div>
+  );
+};
 
 const Index = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
-      </div>
-    </div>
+    <UserProvider>
+      <IndexContent />
+    </UserProvider>
   );
 };
 
