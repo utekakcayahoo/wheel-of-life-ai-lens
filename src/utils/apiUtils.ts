@@ -158,6 +158,7 @@ export const updateWheelFromFeedback = async (
 ): Promise<WheelData> => {
   try {
     if (!isSupabaseConfigured) {
+      console.log('Supabase not configured, using fallback');
       throw new Error('Supabase not configured');
     }
     
@@ -166,16 +167,23 @@ export const updateWheelFromFeedback = async (
       feedback
     });
     
-    const response = await supabase.functions.invoke('update-wheel-from-feedback', {
+    // Set a client-side timeout
+    const timeoutPromise = new Promise<{error: {message: string}}>((_, reject) => {
+      setTimeout(() => {
+        reject({ error: { message: 'Function call timed out after 8 seconds' } });
+      }, 8000);
+    });
+
+    // Call the Supabase function
+    const functionPromise = supabase.functions.invoke('update-wheel-from-feedback', {
       body: {
         baseWheelData,
         feedback
-      },
-      // Add timeout to prevent indefinite waiting
-      options: {
-        timeout: 8000 // 8 seconds timeout
       }
     });
+
+    // Race between the function call and the timeout
+    const response = await Promise.race([functionPromise, timeoutPromise]);
     
     if (response.error) {
       console.error('Error calling update wheel function:', response.error);
