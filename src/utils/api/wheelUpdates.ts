@@ -36,17 +36,18 @@ export const updateWheelFromFeedback = async (
         baseWheelData,
         feedback
       }
-    }) as Promise<{data?: {updatedWheelData: WheelData}, error?: {message: string}}>;
+    });
 
     // Race between the function call and the timeout
     const response = await Promise.race([functionPromise, timeoutPromise]);
     
-    if (response.error) {
+    if ('error' in response && response.error) {
       console.error('Error calling update wheel function:', response.error);
       throw response.error;
     }
     
-    if (!response.data) {
+    // Type guard to ensure data exists and is properly typed
+    if (!('data' in response) || !response.data) {
       console.error('No data returned from update wheel function');
       throw new Error('No data returned from function');
     }
