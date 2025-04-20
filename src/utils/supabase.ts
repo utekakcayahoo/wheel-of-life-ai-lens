@@ -1,17 +1,26 @@
-
 import { createClient } from '@supabase/supabase-js';
 import type { WheelData, WheelHistory, Feedback } from '@/context/UserContext';
 
-// Create Supabase client
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// Create Supabase client with fallback values to prevent crashes
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder-url.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-key';
 
-// Check if the Supabase URL is available
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Supabase URL or Anonymous Key is missing. Please make sure they are set in the environment variables.');
-}
+// Check if proper Supabase credentials are available
+const hasValidSupabaseCredentials = 
+  import.meta.env.VITE_SUPABASE_URL && 
+  import.meta.env.VITE_SUPABASE_URL.includes('supabase.co') &&
+  import.meta.env.VITE_SUPABASE_ANON_KEY && 
+  import.meta.env.VITE_SUPABASE_ANON_KEY.length > 10;
 
+// Create client (will use fallback values if real credentials aren't available)
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Flag to check if we have valid credentials
+export const isSupabaseConfigured = hasValidSupabaseCredentials;
+
+if (!hasValidSupabaseCredentials) {
+  console.warn('Supabase is not properly configured. Using mock data mode. To enable Supabase functionality, please set the VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
+}
 
 // Database types
 export type DbUser = {
@@ -41,6 +50,10 @@ export type DbFeedback = {
 // User related functions
 export const fetchUsers = async () => {
   try {
+    if (!hasValidSupabaseCredentials) {
+      throw new Error('Supabase not configured');
+    }
+    
     const { data, error } = await supabase
       .from('users')
       .select('*');
@@ -52,7 +65,7 @@ export const fetchUsers = async () => {
     
     return data as DbUser[];
   } catch (error) {
-    console.error('Failed to fetch users. Returning mock data:', error);
+    console.warn('Failed to fetch users from Supabase. Using mock data:', error);
     // Return mock data if Supabase is not connected
     return [
       { id: '1', username: 'Joe' },
