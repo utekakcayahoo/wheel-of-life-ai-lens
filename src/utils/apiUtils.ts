@@ -1,3 +1,4 @@
+
 import { supabase, isSupabaseConfigured } from './supabase';
 import { WheelData } from '@/context/UserContext';
 import { translateToEnglish as directTranslate, generateWheelAnalysis as directAnalysis } from './api';
@@ -17,6 +18,7 @@ export const translateToEnglish = async (text: string): Promise<string> => {
     });
     
     if (error) {
+      console.error('Error calling translate function:', error);
       throw error;
     }
     
@@ -36,14 +38,18 @@ export const classifyFeedback = async (text: string): Promise<string[]> => {
       throw new Error('Supabase not configured');
     }
     
+    console.log('Invoking classify-feedback function with text:', text);
+    
     const { data, error } = await supabase.functions.invoke('classify-feedback', {
       body: { text }
     });
     
     if (error) {
+      console.error('Error calling classify function:', error);
       throw error;
     }
     
+    console.log('Classification result:', data);
     return data.categories;
   } catch (error) {
     console.warn('Error calling classify function via Supabase:', error);
@@ -96,11 +102,14 @@ export const generateWheelAnalysis = async (
       throw new Error('Supabase not configured');
     }
     
+    console.log('Invoking generate-wheel-analysis function with data:', { wheelData, username });
+    
     const { data, error } = await supabase.functions.invoke('generate-wheel-analysis', {
       body: { wheelData, username }
     });
     
     if (error) {
+      console.error('Error calling analysis function:', error);
       throw error;
     }
     
@@ -152,6 +161,11 @@ export const updateWheelFromFeedback = async (
       throw new Error('Supabase not configured');
     }
     
+    console.log('Invoking update-wheel-from-feedback function with data:', {
+      baseWheelData,
+      feedback
+    });
+    
     const { data, error } = await supabase.functions.invoke('update-wheel-from-feedback', {
       body: {
         baseWheelData,
@@ -160,9 +174,11 @@ export const updateWheelFromFeedback = async (
     });
     
     if (error) {
+      console.error('Error calling update wheel function:', error);
       throw error;
     }
     
+    console.log('Updated wheel data:', data.updatedWheelData);
     return data.updatedWheelData;
   } catch (error) {
     console.warn('Error calling update wheel function via Supabase, using simple fallback:', error);
