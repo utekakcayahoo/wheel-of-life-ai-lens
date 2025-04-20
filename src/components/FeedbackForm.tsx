@@ -1,25 +1,8 @@
 
 import { useState } from "react";
-import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import {
   Popover,
   PopoverContent,
@@ -28,73 +11,27 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { User, useUserContext } from "@/context/UserContext";
-import { translateToEnglish } from "@/utils/apiUtils";
-import { toast } from "sonner";
+import { useUserContext } from "@/context/UserContext";
+import { format } from "date-fns";
+import { FeedbackFormHeader } from "./feedback/FeedbackFormHeader";
+import { RecipientSelect } from "./feedback/RecipientSelect";
+import { useFeedbackSubmission } from "@/hooks/useFeedbackSubmission";
 
 const FeedbackForm = () => {
-  const { users, currentUser, addFeedback, isLoading } = useUserContext();
+  const { users, currentUser } = useUserContext();
   const [recipientId, setRecipientId] = useState<string>("");
   const [feedback, setFeedback] = useState<string>("");
   const [feedbackDate, setFeedbackDate] = useState<Date | undefined>(new Date());
-  const [submitting, setSubmitting] = useState<boolean>(false);
+  
+  const { submitFeedback, submitting, isLoading } = useFeedbackSubmission();
 
   const handleSubmit = async () => {
-    if (!currentUser) {
-      toast.error("You must be logged in to submit feedback");
-      return;
-    }
-
-    if (!recipientId) {
-      toast.error("Please select a recipient");
-      return;
-    }
-
-    if (!feedback.trim()) {
-      toast.error("Please enter feedback");
-      return;
-    }
-
-    if (!feedbackDate) {
-      toast.error("Please select a date");
-      return;
-    }
-
-    setSubmitting(true);
-
-    try {
-      // If the feedback is not in English, translate it
-      let processedFeedback = feedback;
-      
-      // Simple heuristic to detect if the text might be in a non-English language
-      const englishPattern = /^[a-zA-Z0-9\s.,!?'";:\-()]*$/;
-      if (!englishPattern.test(feedback)) {
-        try {
-          processedFeedback = await translateToEnglish(feedback);
-        } catch (error) {
-          console.error("Error translating feedback:", error);
-          // Continue with original feedback if translation fails
-        }
+    if (feedbackDate) {
+      const success = await submitFeedback(recipientId, feedback, feedbackDate);
+      if (success) {
+        setRecipientId("");
+        setFeedback("");
       }
-
-      // Submit the feedback
-      await addFeedback({
-        from: currentUser.id,
-        to: recipientId,
-        text: processedFeedback,
-        date: format(feedbackDate, "yyyy-MM-dd"),
-      });
-
-      // Reset the form
-      setRecipientId("");
-      setFeedback("");
-
-      toast.success("Feedback submitted successfully");
-    } catch (error) {
-      console.error("Error submitting feedback:", error);
-      toast.error("Failed to submit feedback. Please try again.");
-    } finally {
-      setSubmitting(false);
     }
   };
 
@@ -105,38 +42,16 @@ const FeedbackForm = () => {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Give Feedback</CardTitle>
-        <CardDescription>
-          Provide constructive feedback to help others improve their Wheel of Life
-        </CardDescription>
-      </CardHeader>
+      <FeedbackFormHeader />
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <label className="text-sm font-medium" htmlFor="recipient">
-            Recipient
-          </label>
-          <Select
-            value={recipientId}
-            onValueChange={setRecipientId}
-            disabled={!currentUser || submitting || isLoading}
-          >
-            <SelectTrigger id="recipient">
-              <SelectValue placeholder="Select a recipient" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel>Recipients</SelectLabel>
-                {recipients.map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.username}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </div>
+        <RecipientSelect
+          recipients={recipients}
+          value={recipientId}
+          onChange={setRecipientId}
+          disabled={!currentUser || submitting || isLoading}
+        />
 
+        {/* Date Selection */}
         <div className="space-y-2">
           <label className="text-sm font-medium" htmlFor="date">
             Date
@@ -172,6 +87,7 @@ const FeedbackForm = () => {
           </Popover>
         </div>
 
+        {/* Feedback Text Area */}
         <div className="space-y-2">
           <label className="text-sm font-medium" htmlFor="feedback">
             Your Feedback
