@@ -1,4 +1,3 @@
-
 import { supabase, isSupabaseConfigured } from './supabase';
 import { WheelData } from '@/context/UserContext';
 import { translateToEnglish as directTranslate, generateWheelAnalysis as directAnalysis } from './api';
