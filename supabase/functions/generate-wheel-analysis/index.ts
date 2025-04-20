@@ -15,41 +15,50 @@ serve(async (req) => {
 
   try {
     // Get request body
-    const { wheelData, username } = await req.json();
+    const requestBody = await req.json();
+    const { wheelData, username } = requestBody;
     
     if (!wheelData || !username) {
+      console.error("Missing required parameters:", { wheelData: !!wheelData, username: !!username });
       throw new Error("Missing required parameters: wheelData and username");
     }
     
-    console.log("Received request for wheel analysis:", { username, categories: Object.keys(wheelData) });
+    console.log("Received request for wheel analysis:", { 
+      username, 
+      categories: Object.keys(wheelData),
+      requestBody: JSON.stringify(requestBody).slice(0, 100) + "..."
+    });
     
     // Create Supabase client
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("Missing Supabase configuration");
+      throw new Error("Server configuration error: Missing Supabase credentials");
+    }
+    
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
     
     // Get OpenAI API key from secrets
     const { data: secretData, error: secretError } = await supabaseClient
       .from("secrets")
       .select("value")
       .eq("name", "OPENAI_API_KEY")
-      .limit(1)
-      .single();
+      .maybeSingle();
       
-    if (secretError || !secretData) {
-      console.error("Could not retrieve OpenAI API key:", secretError);
-      throw new Error("Could not retrieve OpenAI API key");
+    if (secretError) {
+      console.error("Error retrieving OpenAI API key:", secretError);
+      throw new Error("Failed to retrieve OpenAI API key");
+    }
+    
+    if (!secretData || !secretData.value) {
+      console.error("OpenAI API key not found or empty");
+      throw new Error("OpenAI API key not configured");
     }
     
     const apiKey = secretData.value;
-    
-    if (!apiKey) {
-      console.error("OpenAI API key is empty");
-      throw new Error("OpenAI API key is empty");
-    }
-    
-    console.log("Calling OpenAI API for wheel analysis");
+    console.log("Successfully retrieved API key, calling OpenAI API");
     
     // Call OpenAI API for analysis
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -85,10 +94,16 @@ serve(async (req) => {
       }),
     });
     
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error("OpenAI API error:", response.status, errorData);
+      throw new Error(`OpenAI API error: ${response.status}`);
+    }
+    
     const data = await response.json();
     
     if (data.error) {
-      console.error("OpenAI API error:", data.error);
+      console.error("OpenAI API returned error:", data.error);
       throw new Error(data.error.message || "Error generating analysis");
     }
     
