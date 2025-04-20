@@ -7,6 +7,7 @@ export const translateToEnglish = async (text: string): Promise<string> => {
   try {
     // If Supabase is not configured properly, use fallback immediately
     if (!isSupabaseConfigured) {
+      console.warn('Supabase not configured, using original text');
       throw new Error('Supabase not configured');
     }
     
@@ -21,7 +22,13 @@ export const translateToEnglish = async (text: string): Promise<string> => {
       console.error('Error calling translate function:', error);
       throw error;
     }
+
+    if (!data || !data.translatedText) {
+      console.error('Invalid response from translate function:', data);
+      throw new Error('Invalid response from translate function');
+    }
     
+    console.log('Translation function responded successfully');
     return data.translatedText;
   } catch (error) {
     console.warn('Error calling translate function via Supabase, using simple fallback:', error);

@@ -17,6 +17,12 @@ serve(async (req) => {
     // Get request body
     const { wheelData, username } = await req.json();
     
+    if (!wheelData || !username) {
+      throw new Error("Missing required parameters: wheelData and username");
+    }
+    
+    console.log("Received request for wheel analysis:", { username, categories: Object.keys(wheelData) });
+    
     // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -32,17 +38,20 @@ serve(async (req) => {
       .single();
       
     if (secretError || !secretData) {
+      console.error("Could not retrieve OpenAI API key:", secretError);
       throw new Error("Could not retrieve OpenAI API key");
     }
     
     const apiKey = secretData.value;
+    
+    console.log("Calling OpenAI API for wheel analysis");
     
     // Call OpenAI API for analysis
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+        "Authorization": `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         model: "gpt-4o-mini",
@@ -79,6 +88,7 @@ serve(async (req) => {
     }
     
     const analysis = data.choices[0].message.content.trim();
+    console.log("Successfully generated analysis");
     
     return new Response(
       JSON.stringify({
@@ -90,13 +100,14 @@ serve(async (req) => {
       }
     );
   } catch (error) {
+    console.error("Error in generate-wheel-analysis:", error);
     return new Response(
       JSON.stringify({
-        error: error.message,
+        error: error.message || "Unknown error occurred",
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 400,
+        status: 500,
       }
     );
   }

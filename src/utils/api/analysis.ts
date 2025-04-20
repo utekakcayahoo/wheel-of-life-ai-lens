@@ -10,10 +10,14 @@ export const generateWheelAnalysis = async (
 ): Promise<string> => {
   try {
     if (!isSupabaseConfigured) {
+      console.warn('Supabase not configured, using fallback analysis');
       throw new Error('Supabase not configured');
     }
     
-    console.log('Invoking generate-wheel-analysis function with data:', { wheelData, username });
+    console.log('Invoking generate-wheel-analysis function with data:', { 
+      wheelDataKeys: Object.keys(wheelData), 
+      username 
+    });
     
     const { data, error } = await supabase.functions.invoke('generate-wheel-analysis', {
       body: { wheelData, username }
@@ -24,6 +28,12 @@ export const generateWheelAnalysis = async (
       throw error;
     }
     
+    if (!data || !data.analysis) {
+      console.error('Invalid response from analysis function:', data);
+      throw new Error('Invalid response from analysis function');
+    }
+    
+    console.log('Analysis function responded successfully');
     return data.analysis;
   } catch (error) {
     console.warn('Error calling analysis function via Supabase, using simple fallback:', error);

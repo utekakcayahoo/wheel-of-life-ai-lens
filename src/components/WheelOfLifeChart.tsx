@@ -12,8 +12,9 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { WheelData } from "@/types/userTypes";
-import { wheelDataToChartFormat, formatCategoryClass, getCategoryColor } from "@/utils/wheelOfLifeUtils";
+import { wheelDataToChartFormat } from "@/utils/wheelOfLifeUtils";
 import { generateWheelAnalysis } from "@/utils/apiUtils";
+import { toast } from "sonner";
 
 interface WheelOfLifeChartProps {
   wheelData: WheelData | null;
@@ -38,6 +39,7 @@ const WheelOfLifeChart = ({ wheelData, username, date }: WheelOfLifeChartProps) 
         .catch((error) => {
           console.error("Error generating analysis:", error);
           setAnalysis("Unable to generate analysis. Please try again later.");
+          toast.error("Failed to generate wheel analysis");
         })
         .finally(() => {
           setLoading(false);
