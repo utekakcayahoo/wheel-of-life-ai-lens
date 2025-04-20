@@ -10,6 +10,8 @@ export const translateToEnglish = async (text: string): Promise<string> => {
       throw new Error('Supabase not configured');
     }
     
+    console.log('Invoking translate-text function with text:', text.substring(0, 50) + (text.length > 50 ? '...' : ''));
+    
     // Try using Supabase Edge Function
     const { data, error } = await supabase.functions.invoke('translate-text', {
       body: { text }
