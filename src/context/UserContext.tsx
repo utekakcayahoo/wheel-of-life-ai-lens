@@ -37,6 +37,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   const addFeedback = async (feedback: Omit<Feedback, "id" | "categories">) => {
+    if (!currentUser) {
+      throw new Error("You must be logged in to submit feedback");
+    }
+
     try {
       const categories = await classifyFeedback(feedback.text);
       
@@ -45,24 +49,38 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const recipient = users.find(u => u.id === feedback.to);
-      if (!recipient) return;
+      if (!recipient) {
+        throw new Error("Recipient not found");
+      }
 
       // Get base wheel data
       const baseWheelData = recipient.wheelHistory[feedback.date] || getEmptyWheelData();
       
       // Update wheel based on feedback
-      const updatedWheelData = await updateWheelFromFeedback(
-        baseWheelData,
-        {
-          from: currentUser?.username || feedback.from,
-          text: feedback.text,
-          categories
-        }
-      );
+      let updatedWheelData: WheelData;
+      
+      try {
+        updatedWheelData = await updateWheelFromFeedback(
+          baseWheelData,
+          {
+            from: currentUser?.username || feedback.from,
+            text: feedback.text,
+            categories
+          }
+        );
+      } catch (error) {
+        console.error("Error updating wheel data:", error);
+        throw new Error(`Failed to update wheel data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
       
       // Save updates
-      await saveWheelData(feedback.to, feedback.date, updatedWheelData);
-      await saveFeedback({ ...feedback, categories });
+      try {
+        await saveWheelData(feedback.to, feedback.date, updatedWheelData);
+        await saveFeedback({ ...feedback, categories });
+      } catch (error) {
+        console.error("Error saving data:", error);
+        throw new Error(`Failed to save data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
       
       // Refresh data
       await refreshUserData(feedback.to);
@@ -71,7 +89,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error) {
       console.error("Error processing feedback:", error);
-      toast.error("Failed to process feedback. Please try again.");
       throw error;
     }
   };

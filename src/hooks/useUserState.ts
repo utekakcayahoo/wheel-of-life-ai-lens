@@ -7,11 +7,11 @@ import {
   fetchUserFeedback,
   subscribeToWheelUpdates,
   subscribeToFeedbackUpdates,
-  initializeDefaultUsers,
   saveWheelData
 } from '@/utils/supabase';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { checkDatabaseSetup } from '@/utils/supabase/databaseCheck';
 
 export const useUserState = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -32,6 +32,8 @@ export const useUserState = () => {
 
   const refreshUserData = async (userId: string) => {
     try {
+      setIsLoading(true);
+      
       const wheelHistory = await fetchUserWheelHistory(userId);
       const { feedbackReceived, feedbackGiven } = await fetchUserFeedback(userId);
       
@@ -52,6 +54,9 @@ export const useUserState = () => {
       });
     } catch (error) {
       console.error("Error refreshing user data:", error);
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -59,23 +64,21 @@ export const useUserState = () => {
     try {
       setIsLoading(true);
       
+      // Check database setup
       try {
-        // Try to initialize default users first
-        await initializeDefaultUsers();
+        await checkDatabaseSetup();
       } catch (error) {
-        console.error("Error initializing users:", error);
+        console.error("Database setup check failed:", error);
+        throw error;
       }
-      
+            
       try {
         const usersData = await fetchUsers();
         
-        // Check if we're using mock data by looking at the source of users
-        const isMockData = usersData.length === 3 && 
-                        usersData[0].username === 'Joe' && 
-                        usersData[1].username === 'Mike' && 
-                        usersData[2].username === 'Emma';
-        
-        setUsingMockData(isMockData);
+        if (usersData.length === 0) {
+          console.error("No users found in database.");
+          throw new Error("No users found in database");
+        }
         
         const formattedUsers = await Promise.all(
           usersData.map(async (user) => {
@@ -92,27 +95,20 @@ export const useUserState = () => {
               };
             } catch (error) {
               console.error(`Error fetching data for user ${user.username}:`, error);
-              return {
-                id: user.id,
-                username: user.username,
-                wheelHistory: {},
-                feedbackReceived: [],
-                feedbackGiven: []
-              };
+              throw new Error(`Failed to load user data for ${user.username}`);
             }
           })
         );
         
         setUsers(formattedUsers);
+        setUsingMockData(false);
       } catch (error) {
         console.error("Error fetching users:", error);
-        setUsingMockData(true);
-        toast.error("Error loading user data. Using mock data instead.");
+        throw error;
       }
     } catch (error) {
       console.error("Error initializing users:", error);
-      setUsingMockData(true);
-      toast.error("Error loading user data. Using mock data instead.");
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -123,34 +119,42 @@ export const useUserState = () => {
     try {
       const user = users.find(u => u.id === userId);
       
-      if (user) {
-        const wheelUpdates = subscribeToWheelUpdates(userId, () => {
-          refreshUserData(userId);
-        });
+      if (!user) {
+        throw new Error(`User with ID ${userId} not found`);
+      }
+      
+      const wheelUpdates = subscribeToWheelUpdates(userId, () => {
+        refreshUserData(userId);
+      });
+      
+      const feedbackUpdates = subscribeToFeedbackUpdates(userId, () => {
+        refreshUserData(userId);
+      });
+      
+      setWheelChannel(wheelUpdates);
+      setFeedbackChannel(feedbackUpdates);
+      
+      const today = format(new Date(), "yyyy-MM-dd");
+      if (!user.wheelHistory[today]) {
+        const dates = Object.keys(user.wheelHistory).sort();
+        const mostRecentData = dates.length > 0 
+          ? user.wheelHistory[dates[dates.length - 1]] 
+          : getEmptyWheelData();
         
-        const feedbackUpdates = subscribeToFeedbackUpdates(userId, () => {
-          refreshUserData(userId);
-        });
-        
-        setWheelChannel(wheelUpdates);
-        setFeedbackChannel(feedbackUpdates);
-        
-        const today = format(new Date(), "yyyy-MM-dd");
-        if (!user.wheelHistory[today]) {
-          const dates = Object.keys(user.wheelHistory).sort();
-          const mostRecentData = dates.length > 0 
-            ? user.wheelHistory[dates[dates.length - 1]] 
-            : getEmptyWheelData();
-          
+        try {
           await saveWheelData(userId, today, mostRecentData);
           user.wheelHistory[today] = mostRecentData;
+        } catch (error) {
+          console.error("Error saving wheel data for today:", error);
+          throw new Error("Failed to initialize today's wheel data");
         }
-        
-        setCurrentUser(user);
       }
+      
+      setCurrentUser(user);
     } catch (error) {
       console.error("Error during login:", error);
       toast.error("Failed to log in. Please try again.");
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -165,7 +169,11 @@ export const useUserState = () => {
   };
 
   useEffect(() => {
-    initializeUsers();
+    initializeUsers().catch(error => {
+      console.error("Failed to initialize users:", error);
+      toast.error("Failed to load user data. Please check your database connection.");
+    });
+    
     return () => {
       if (wheelChannel) wheelChannel.unsubscribe();
       if (feedbackChannel) feedbackChannel.unsubscribe();

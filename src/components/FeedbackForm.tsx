@@ -8,8 +8,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUserContext } from "@/context/UserContext";
 import { format } from "date-fns";
@@ -22,16 +23,23 @@ const FeedbackForm = () => {
   const [recipientId, setRecipientId] = useState<string>("");
   const [feedback, setFeedback] = useState<string>("");
   const [feedbackDate, setFeedbackDate] = useState<Date | undefined>(new Date());
+  const [formError, setFormError] = useState<string | null>(null);
   
-  const { submitFeedback, submitting, isLoading } = useFeedbackSubmission();
+  const { submitFeedback, submitting, isLoading, error } = useFeedbackSubmission();
 
   const handleSubmit = async () => {
-    if (feedbackDate) {
-      const success = await submitFeedback(recipientId, feedback, feedbackDate);
-      if (success) {
-        setRecipientId("");
-        setFeedback("");
-      }
+    if (!feedbackDate) {
+      setFormError("Please select a date");
+      return;
+    }
+    
+    setFormError(null);
+    try {
+      await submitFeedback(recipientId, feedback, feedbackDate);
+      setRecipientId("");
+      setFeedback("");
+    } catch (err) {
+      // Error is handled by the hook
     }
   };
 
@@ -44,6 +52,16 @@ const FeedbackForm = () => {
     <Card>
       <FeedbackFormHeader />
       <CardContent className="space-y-4">
+        {(formError || error) && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-5 w-5" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+              {formError || error}
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <RecipientSelect
           recipients={recipients}
           value={recipientId}

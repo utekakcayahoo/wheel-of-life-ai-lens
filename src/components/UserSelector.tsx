@@ -18,11 +18,16 @@ import { isSupabaseConfigured } from "@/utils/supabase";
 const UserSelector = () => {
   const { users, currentUser, login, logout, isLoading, usingMockData } = useUserContext();
   const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [loginError, setLoginError] = useState<string | null>(null);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (selectedUserId) {
-      login(selectedUserId);
-      setSelectedUserId("");
+      try {
+        setLoginError(null);
+        await login(selectedUserId);
+      } catch (error) {
+        setLoginError(error instanceof Error ? error.message : "Failed to log in");
+      }
     }
   };
 
@@ -39,6 +44,14 @@ const UserSelector = () => {
           <AlertDescription className="text-amber-600 dark:text-amber-300">
             Supabase connection not configured or RLS policy issues detected. Please apply the migration script in supabase/migrations folder.
           </AlertDescription>
+        </Alert>
+      )}
+      
+      {loginError && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertTriangle className="h-5 w-5" />
+          <AlertTitle>Login Error</AlertTitle>
+          <AlertDescription>{loginError}</AlertDescription>
         </Alert>
       )}
       
@@ -66,7 +79,7 @@ const UserSelector = () => {
               disabled={!selectedUserId || isLoading}
               className="flex items-center gap-2"
             >
-              <LogIn className="h-4 w-4" /> Log in
+              <LogIn className="h-4 w-4" /> {isLoading ? "Logging in..." : "Log in"}
             </Button>
           </div>
         </>

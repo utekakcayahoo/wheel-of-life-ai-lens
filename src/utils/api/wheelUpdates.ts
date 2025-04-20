@@ -12,17 +12,16 @@ export const updateWheelFromFeedback = async (
     categories: string[];
   }
 ): Promise<WheelData> => {
+  if (!isSupabaseConfigured) {
+    throw new Error('Supabase not configured');
+  }
+  
+  const isDatabaseSetup = await checkDatabaseSetup();
+  if (!isDatabaseSetup) {
+    throw new Error('Database tables not set up properly');
+  }
+  
   try {
-    if (!isSupabaseConfigured) {
-      console.log('Supabase not configured, using fallback');
-      throw new Error('Supabase not configured');
-    }
-    
-    const isDatabaseSetup = await checkDatabaseSetup();
-    if (!isDatabaseSetup) {
-      throw new Error('Database tables not set up properly');
-    }
-    
     console.log('Attempting to update wheel from feedback');
     
     const timeoutPromise = new Promise<{error: {message: string}}>((_, reject) => {
@@ -39,10 +38,7 @@ export const updateWheelFromFeedback = async (
     
     if ('error' in response) {
       console.error('Wheel update function error:', response.error);
-      toast.warning('Wheel update service encountered an issue.', {
-        description: response.error?.message || 'Unable to update wheel automatically'
-      });
-      throw response.error;
+      throw new Error(response.error?.message || 'Unable to update wheel automatically');
     }
     
     // Fix the type issue by using type assertion to tell TypeScript what the response structure is
@@ -61,6 +57,7 @@ export const updateWheelFromFeedback = async (
       description: error instanceof Error ? error.message : 'Unknown error occurred'
     });
     
+    // Simple fallback logic
     const updatedData = { ...baseWheelData };
     feedback.categories.forEach(category => {
       if (updatedData[category] !== undefined) {

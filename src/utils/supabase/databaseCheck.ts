@@ -30,16 +30,16 @@ export const checkDatabaseSetup = async (): Promise<boolean> => {
           }
         );
         console.error("RLS policy issue detected. Check the migration script in supabase/migrations folder.");
-        return false; // Return false so the app knows there's an issue with RLS
+        return false;
       }
       
       console.error("Error checking database:", error);
-      return false;
+      throw error; // Throw error so we don't silently fail
     }
     
     return true;
   } catch (error) {
     console.error("Failed to check database setup:", error);
-    return false;
+    throw error; // Throw error rather than silently using mock data
   }
 };

@@ -8,6 +8,7 @@ import { checkDatabaseSetup } from '@/utils/supabase/databaseCheck';
 export const useFeedbackSubmission = () => {
   const { currentUser, addFeedback, isLoading } = useUserContext();
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   const submitFeedback = async (
     recipientId: string,
@@ -15,24 +16,25 @@ export const useFeedbackSubmission = () => {
     feedbackDate: Date
   ) => {
     if (!currentUser) {
-      toast.error("You must be logged in to submit feedback");
-      return;
+      const error = new Error("You must be logged in to submit feedback");
+      toast.error(error.message);
+      setError(error.message);
+      throw error;
     }
 
     if (!recipientId || !feedback.trim() || !feedbackDate) {
-      toast.error("Please fill in all required fields");
-      return;
+      const error = new Error("Please fill in all required fields");
+      toast.error(error.message);
+      setError(error.message);
+      throw error;
     }
 
     setSubmitting(true);
+    setError(null);
 
     try {
       // Check if database is properly set up
-      const isDatabaseSetup = await checkDatabaseSetup();
-      if (!isDatabaseSetup) {
-        toast.error("Database not properly set up. Unable to save feedback.");
-        return false;
-      }
+      await checkDatabaseSetup();
       
       // Check if translation is needed
       let processedFeedback = feedback;
@@ -43,6 +45,7 @@ export const useFeedbackSubmission = () => {
           processedFeedback = await translateToEnglish(feedback);
         } catch (error) {
           console.error("Error translating feedback:", error);
+          // Continue with original feedback if translation fails
         }
       }
 
@@ -56,9 +59,11 @@ export const useFeedbackSubmission = () => {
       toast.success("Feedback submitted successfully");
       return true;
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to submit feedback. Please try again.";
       console.error("Error submitting feedback:", error);
-      toast.error("Failed to submit feedback. Please try again.");
-      return false;
+      toast.error(errorMessage);
+      setError(errorMessage);
+      throw error;
     } finally {
       setSubmitting(false);
     }
@@ -67,6 +72,7 @@ export const useFeedbackSubmission = () => {
   return {
     submitFeedback,
     submitting,
-    isLoading
+    isLoading,
+    error
   };
 };
