@@ -11,7 +11,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LogIn, LogOut } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { LogIn, LogOut, AlertTriangle } from "lucide-react";
+import { isSupabaseConfigured } from "@/utils/supabase";
 
 const UserSelector = () => {
   const { users, currentUser, login, logout, isLoading } = useUserContext();
@@ -30,6 +32,16 @@ const UserSelector = () => {
 
   return (
     <div className="space-y-4 p-4 border rounded-lg bg-card">
+      {!isSupabaseConfigured && (
+        <Alert variant="default" className="mb-4 border-amber-500 bg-amber-50 dark:bg-amber-950/20">
+          <AlertTriangle className="h-5 w-5 text-amber-500" />
+          <AlertTitle className="text-amber-700 dark:text-amber-400">Using Mock Data</AlertTitle>
+          <AlertDescription className="text-amber-600 dark:text-amber-300">
+            Supabase connection not configured or RLS policy issues detected. The app is running with temporary data that won't persist.
+          </AlertDescription>
+        </Alert>
+      )}
+      
       {!currentUser ? (
         <>
           <h2 className="text-xl font-semibold mb-4">Select a User</h2>
