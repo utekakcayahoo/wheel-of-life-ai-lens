@@ -1,5 +1,4 @@
 
-import { UserProvider } from "@/context/UserContext";
 import UserSelector from "@/components/UserSelector";
 import Dashboard from "@/components/Dashboard";
 import { useUserContext } from "@/context/UserContext";
@@ -29,12 +28,9 @@ const IndexContent = () => {
   );
 };
 
+// Removed the nested UserProvider since it's already provided in App.tsx
 const Index = () => {
-  return (
-    <UserProvider>
-      <IndexContent />
-    </UserProvider>
-  );
+  return <IndexContent />;
 };
 
 export default Index;

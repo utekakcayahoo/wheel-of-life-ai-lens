@@ -25,10 +25,15 @@ const AppContent = () => {
   useEffect(() => {
     // Check if database is set up when the app loads
     const setupApp = async () => {
-      const isDbSetup = await checkDatabaseSetup();
-      if (isDbSetup) {
-        // Only initialize users if database is set up
-        await initializeDefaultUsers();
+      try {
+        const isDbSetup = await checkDatabaseSetup();
+        console.log("Database setup check complete:", isDbSetup);
+        if (isDbSetup) {
+          // Only initialize users if database is set up
+          await initializeDefaultUsers();
+        }
+      } catch (error) {
+        console.error("Error during app setup:", error);
       }
     };
     
@@ -36,26 +41,26 @@ const AppContent = () => {
   }, []);
 
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <Routes>
-        <Route path="/" element={<Index />} />
-        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Suspense>
+    <UserProvider>
+      <Suspense fallback={<div>Loading...</div>}>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
+    </UserProvider>
   );
 };
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <UserProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AppContent />
-        </BrowserRouter>
-      </UserProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <AppContent />
+      </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );

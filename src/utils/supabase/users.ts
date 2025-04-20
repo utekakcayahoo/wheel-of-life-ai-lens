@@ -40,7 +40,7 @@ export const initializeDefaultUsers = async () => {
     // First check if users already exist
     const { data: existingUsers, error: fetchError } = await supabase
       .from('users')
-      .select('count');
+      .select('*');
       
     if (fetchError) {
       console.error('Error checking existing users:', fetchError);
@@ -48,7 +48,7 @@ export const initializeDefaultUsers = async () => {
     }
     
     // Only add default users if no users exist
-    if (existingUsers && existingUsers.length === 0) {
+    if (!existingUsers || existingUsers.length === 0) {
       console.log('No users found, initializing default users');
       const defaultUsers = [
         { id: '1', username: 'Joe' },
