@@ -37,7 +37,7 @@ export const updateWheelWithOpenAI = async (apiKey: string, wheelCategories: str
     }),
   });
   
-  return response.json();
+  return await response.json();
 };
 
 export const processOpenAIResponse = (data: any, wheelCategories: string[], baseWheelData: any) => {
@@ -66,3 +66,4 @@ export const processOpenAIResponse = (data: any, wheelCategories: string[], base
   
   return updatedWheelData;
 };
+
