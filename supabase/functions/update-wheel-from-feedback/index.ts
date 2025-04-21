@@ -9,7 +9,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Helper function to handle CORS
+// Handle CORS preflight requests
 function handleCors(req: Request) {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -23,63 +23,6 @@ function createSupabaseClient() {
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
   );
-}
-
-// Function to get wheel categories from database
-async function getWheelCategories(supabaseClient: any) {
-  const { data: categoryData, error: categoryError } = await supabaseClient
-    .from("wheel_categories")
-    .select("name");
-    
-  if (categoryError) {
-    throw new Error("Could not retrieve wheel categories: " + categoryError.message);
-  }
-  
-  return categoryData?.map((cat: any) => cat.name) || [];
-}
-
-// Get OpenAI API key from environment variable (Supabase Secret)
-async function getOpenAIKey() {
-  const apiKey = Deno.env.get("OPENAI_API_KEY");
-  if (!apiKey) {
-    throw new Error("Could not retrieve OpenAI API key from environment variable.");
-  }
-  return apiKey;
-}
-
-// Get feedback provider username
-async function getFeedbackProvider(supabaseClient: any, userId: string) {
-  const { data: userData, error: userError } = await supabaseClient
-    .from("users")
-    .select("username")
-    .eq("id", userId)
-    .single();
-    
-  if (userError) {
-    console.error("Error getting username:", userError);
-  }
-  
-  return userData ? userData.username : userId;
-}
-
-// Process feedback and update wheel
-async function processFeedbackUpdate(
-  supabaseClient: ReturnType<typeof createClient>,
-  baseWheelData: any,
-  feedback: any,
-  wheelCategories: string[]
-) {
-  // If no categories were classified, return the base wheel data unchanged
-  if (!feedback.categories || feedback.categories.length === 0) {
-    return baseWheelData;
-  }
-
-  const apiKey = await getOpenAIKey();
-  const fromUser = await getFeedbackProvider(supabaseClient, feedback.from);
-  
-  console.log("Calling OpenAI API to update wheel data");
-  const openAIData = await updateWheelWithOpenAI(apiKey, wheelCategories, baseWheelData, feedback, fromUser);
-  return processOpenAIResponse(openAIData, wheelCategories, baseWheelData);
 }
 
 serve(async (req) => {
@@ -121,3 +64,23 @@ serve(async (req) => {
     );
   }
 });
+
+// Process feedback and update wheel
+async function processFeedbackUpdate(
+  supabaseClient: ReturnType<typeof createClient>,
+  baseWheelData: any,
+  feedback: any,
+  wheelCategories: string[]
+) {
+  // If no categories were classified, return the base wheel data unchanged
+  if (!feedback.categories || feedback.categories.length === 0) {
+    return baseWheelData;
+  }
+
+  const apiKey = await getOpenAIKey();
+  const fromUser = await getFeedbackProvider(supabaseClient, feedback.from);
+  
+  console.log("Calling OpenAI API to update wheel data");
+  const openAIData = await updateWheelWithOpenAI(apiKey, wheelCategories, baseWheelData, feedback, fromUser);
+  return processOpenAIResponse(openAIData, wheelCategories, baseWheelData);
+}
