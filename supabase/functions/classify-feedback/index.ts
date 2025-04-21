@@ -16,38 +16,30 @@ serve(async (req) => {
   try {
     // Get request body
     const { text } = await req.json();
-    
-    // Create Supabase client
+
+    // Create Supabase client to get wheel_categories, but not for secrets
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
-    
+
     // Get wheel categories
     const { data: categoryData, error: categoryError } = await supabaseClient
       .from("wheel_categories")
       .select("name");
-      
+
     if (categoryError) {
       throw new Error("Could not retrieve wheel categories");
     }
-    
+
     const wheelCategories = categoryData.map(cat => cat.name);
-    
-    // Get OpenAI API key from secrets
-    const { data: secretData, error: secretError } = await supabaseClient
-      .from("secrets")
-      .select("value")
-      .eq("name", "OPENAI_API_KEY")
-      .limit(1)
-      .single();
-      
-    if (secretError || !secretData) {
-      throw new Error("Could not retrieve OpenAI API key");
+
+    // Get OpenAI API key from environment variable
+    const apiKey = Deno.env.get("OPENAI_API_KEY");
+    if (!apiKey) {
+      throw new Error("OPENAI_API_KEY is not configured in Supabase Secrets.");
     }
-    
-    const apiKey = secretData.value;
-    
+
     // Call OpenAI API for classification
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -75,19 +67,19 @@ serve(async (req) => {
         max_tokens: 150
       }),
     });
-    
+
     const data = await response.json();
-    
+
     if (data.error) {
       console.error("OpenAI API error:", data.error);
       throw new Error(data.error.message || "Error classifying feedback");
     }
-    
+
     let categories = [];
     try {
       // Parse the response to get categories
       const content = data.choices[0].message.content;
-      
+
       // Try to parse as JSON if it's in JSON format
       if (content.includes("[") && content.includes("]")) {
         const jsonMatch = content.match(/\[.*?\]/s);
@@ -96,17 +88,17 @@ serve(async (req) => {
           categories = JSON.parse(jsonStr);
         }
       }
-      
+
       // If not JSON, try to extract categories by name
       if (categories.length === 0) {
-        categories = wheelCategories.filter(category => 
+        categories = wheelCategories.filter(category =>
           content.includes(category)
         );
       }
     } catch (error) {
       console.error("Error parsing categories:", error);
     }
-    
+
     return new Response(
       JSON.stringify({
         categories,

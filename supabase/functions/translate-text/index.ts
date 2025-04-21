@@ -17,25 +17,11 @@ serve(async (req) => {
     // Get request body
     const { text } = await req.json();
 
-    // Create Supabase client
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
-
-    // Get OpenAI API key from secrets
-    const { data: secretData, error: secretError } = await supabaseClient
-      .from("secrets")
-      .select("value")
-      .eq("name", "OPENAI_API_KEY")
-      .limit(1)
-      .single();
-
-    if (secretError || !secretData) {
-      throw new Error("Could not retrieve OpenAI API key");
+    // Get OpenAI API key from environment variable
+    const apiKey = Deno.env.get("OPENAI_API_KEY");
+    if (!apiKey) {
+      throw new Error("OPENAI_API_KEY is not configured in Supabase Secrets.");
     }
-
-    const apiKey = secretData.value;
 
     // Call OpenAI API for translation
     const response = await fetch("https://api.openai.com/v1/chat/completions", {

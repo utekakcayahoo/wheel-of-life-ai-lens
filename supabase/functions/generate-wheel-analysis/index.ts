@@ -17,49 +17,26 @@ serve(async (req) => {
     // Get request body
     const requestBody = await req.json();
     const { wheelData, username } = requestBody;
-    
+
     if (!wheelData || !username) {
       console.error("Missing required parameters:", { wheelData: !!wheelData, username: !!username });
       throw new Error("Missing required parameters: wheelData and username");
     }
-    
-    console.log("Received request for wheel analysis:", { 
-      username, 
+
+    console.log("Received request for wheel analysis:", {
+      username,
       categories: Object.keys(wheelData),
       requestBody: JSON.stringify(requestBody).slice(0, 100) + "..."
     });
-    
-    // Create Supabase client
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    
-    if (!supabaseUrl || !supabaseServiceKey) {
-      console.error("Missing Supabase configuration");
-      throw new Error("Server configuration error: Missing Supabase credentials");
+
+    // Get OpenAI API key from environment variable
+    const apiKey = Deno.env.get("OPENAI_API_KEY");
+    if (!apiKey) {
+      console.error("OPENAI_API_KEY not found in environment variables.");
+      throw new Error("OPENAI_API_KEY is not configured in Supabase Secrets.");
     }
-    
-    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
-    
-    // Get OpenAI API key from secrets
-    const { data: secretData, error: secretError } = await supabaseClient
-      .from("secrets")
-      .select("value")
-      .eq("name", "OPENAI_API_KEY")
-      .maybeSingle();
-      
-    if (secretError) {
-      console.error("Error retrieving OpenAI API key:", secretError);
-      throw new Error("Failed to retrieve OpenAI API key");
-    }
-    
-    if (!secretData || !secretData.value) {
-      console.error("OpenAI API key not found or empty");
-      throw new Error("OpenAI API key not configured");
-    }
-    
-    const apiKey = secretData.value;
     console.log("Successfully retrieved API key, calling OpenAI API");
-    
+
     // Call OpenAI API for analysis
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -78,7 +55,7 @@ serve(async (req) => {
             2. Identify areas that need improvement (lowest scores)
             3. Provide a brief, encouraging analysis
             4. Suggest one simple action to improve the lowest scoring area
-            
+
             Keep your response concise, positive, and action-oriented. Maximum 4 short paragraphs.`
           },
           {
@@ -93,23 +70,23 @@ serve(async (req) => {
         max_tokens: 350
       }),
     });
-    
+
     if (!response.ok) {
       const errorData = await response.text();
       console.error("OpenAI API error:", response.status, errorData);
       throw new Error(`OpenAI API error: ${response.status}`);
     }
-    
+
     const data = await response.json();
-    
+
     if (data.error) {
       console.error("OpenAI API returned error:", data.error);
       throw new Error(data.error.message || "Error generating analysis");
     }
-    
+
     const analysis = data.choices[0].message.content.trim();
     console.log("Successfully generated analysis");
-    
+
     return new Response(
       JSON.stringify({
         analysis,
