@@ -1,5 +1,5 @@
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.6";
 
 // Get OpenAI API key directly from environment variable
 export const getOpenAIKey = async () => {

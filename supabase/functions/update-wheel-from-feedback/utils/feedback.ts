@@ -1,7 +1,7 @@
 import { WheelData } from './types.ts';
 import { updateWheelWithOpenAI, processOpenAIResponse } from './openai.ts';
 import { getOpenAIKey, getFeedbackProvider } from './supabase.ts';
-import { SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.6';
 
 export type FeedbackData = {
   text: string;
@@ -20,7 +20,7 @@ export const processFeedbackUpdate = async (
     return baseWheelData;
   }
 
-  const apiKey = await getOpenAIKey(supabaseClient);
+  const apiKey = await getOpenAIKey();
   const fromUser = await getFeedbackProvider(supabaseClient, feedback.from);
   
   console.log("Calling OpenAI API to update wheel data");

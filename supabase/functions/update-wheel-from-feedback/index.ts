@@ -1,5 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { updateWheelWithOpenAI, processOpenAIResponse } from "./utils/openai.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.6";
+import { getOpenAIKey, getFeedbackProvider } from "./utils/supabase.ts";
+import { getWheelCategories } from "./utils/wheel.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,7 +19,6 @@ function handleCors(req: Request) {
 
 // Create Supabase client
 function createSupabaseClient() {
-  const { createClient } = require("https://esm.sh/@supabase/supabase-js@2.39.6");
   return createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -62,7 +64,7 @@ async function getFeedbackProvider(supabaseClient: any, userId: string) {
 
 // Process feedback and update wheel
 async function processFeedbackUpdate(
-  supabaseClient: any,
+  supabaseClient: ReturnType<typeof createClient>,
   baseWheelData: any,
   feedback: any,
   wheelCategories: string[]
