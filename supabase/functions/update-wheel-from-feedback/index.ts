@@ -35,20 +35,13 @@ async function getWheelCategories(supabaseClient: any) {
   return categoryData?.map((cat: any) => cat.name) || [];
 }
 
-// Get OpenAI API key from secrets
-async function getOpenAIKey(supabaseClient: any) {
-  const { data: secretData, error: secretError } = await supabaseClient
-    .from("secrets")
-    .select("value")
-    .eq("name", "OPENAI_API_KEY")
-    .limit(1)
-    .single();
-    
-  if (secretError || !secretData?.value) {
-    throw new Error("Could not retrieve OpenAI API key: " + (secretError?.message || "No data returned"));
+// Get OpenAI API key from environment variable (Supabase Secret)
+async function getOpenAIKey() {
+  const apiKey = Deno.env.get("OPENAI_API_KEY");
+  if (!apiKey) {
+    throw new Error("Could not retrieve OpenAI API key from environment variable.");
   }
-  
-  return secretData.value;
+  return apiKey;
 }
 
 // Get feedback provider username
@@ -148,7 +141,7 @@ async function processFeedbackUpdate(
     return baseWheelData;
   }
 
-  const apiKey = await getOpenAIKey(supabaseClient);
+  const apiKey = await getOpenAIKey();
   const fromUser = await getFeedbackProvider(supabaseClient, feedback.from);
   
   console.log("Calling OpenAI API to update wheel data");
